@@ -50,11 +50,21 @@ public class FeedbackManager {
 
     public void countKeyword(String keyword) {
         int count = 0;
+        keyword = keyword.toLowerCase();
+
         for (String feedback : feedbackList) {
-            count += Pattern.compile("\\b" + Pattern.quote(keyword) + "\\b", Pattern.CASE_INSENSITIVE)
-                    .matcher(feedback).results().count();
+            String[] words = feedback.toLowerCase().split("\\s+");
+
+            String prev = "";
+            for (String word : words) {
+                if (word.equals(keyword) && !word.equals(prev)) {
+                    count++;
+                }
+                prev = word;
+            }
         }
-        System.out.println("🔍 '" + keyword + "' occurred " + count + " time(s).");
+
+        System.out.println("🔍 '" + keyword + "' occurred (non-spam) " + count + " time(s).");
     }
 
     public void generateReport() {
@@ -67,13 +77,43 @@ public class FeedbackManager {
         int max = 0, min = Integer.MAX_VALUE, totalWords = 0;
 
         for (String feedback : feedbackList) {
-            int words = feedback.trim().split("\\s+").length;
-            totalWords += words;
-            if (words > max) max = words;
-            if (words < min) min = words;
+            String[] words = feedback.trim().split("\\s+");
+            totalWords += words.length;
+            if (words.length > max) max = words.length;
+            if (words.length < min) min = words.length;
         }
 
         double avg = (double) totalWords / total;
         System.out.printf("📊 Total: %d, Avg: %.2f, Max: %d, Min: %d\n", total, avg, max, min);
+
+        generateWordFrequency();
+    }
+
+    private void generateWordFrequency() {
+        ArrayList<String> words = new ArrayList<>();
+        ArrayList<Integer> counts = new ArrayList<>();
+
+        for (String feedback : feedbackList) {
+            String[] tokens = feedback.toLowerCase().split("\\s+");
+
+            String prev = "";
+            for (String word : tokens) {
+                if (word.equals(prev)) continue; // skip spam (consecutive)
+                prev = word;
+
+                int index = words.indexOf(word);
+                if (index == -1) {
+                    words.add(word);
+                    counts.add(1);
+                } else {
+                    counts.set(index, counts.get(index) + 1);
+                }
+            }
+        }
+
+        System.out.println("📌 Word Frequency (no spam):");
+        for (int i = 0; i < words.size(); i++) {
+            System.out.println("   " + words.get(i) + ": " + counts.get(i));
+        }
     }
 }
